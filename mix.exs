@@ -1,7 +1,7 @@
 defmodule WwwRedirect.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/PJUllrich/www_redirect"
 
   def project do
@@ -29,7 +29,8 @@ defmodule WwwRedirect.MixProject do
     [
       {:phoenix, ">= 1.0.0"},
       {:plug, ">= 1.0.0"},
-      {:igniter, ">= 0.5.0", only: [:dev, :test]}
+      {:igniter, ">= 0.6.0", optional: true},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 

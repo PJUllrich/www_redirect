@@ -8,8 +8,8 @@ defmodule Mix.Tasks.WwwRedirect.InstallTest do
         test_project(
           files: %{
             "lib/test_web/endpoint.ex" => """
-            defmodule BlogWeb.Endpoint do
-              use Phoenix.Endpoint, otp_app: :blog
+            defmodule TestWeb.Endpoint do
+              use Phoenix.Endpoint, otp_app: :test
 
               @session_options [
                 store: :cookie,
@@ -23,12 +23,27 @@ defmodule Mix.Tasks.WwwRedirect.InstallTest do
                 longpoll: [connect_info: [session: @session_options]]
               )
 
+              # Serve at "/" the static files from "priv/static" directory.
+              #
+              # You should set gzip to true if you are running phx.digest
+              # when deploying your static files in production.
               plug(Plug.Static,
                 at: "/",
-                from: :blog,
+                from: :test,
                 gzip: false,
-                only: BlogWeb.static_paths()
+                only: TestWeb.static_paths()
               )
+
+              plug(TestWeb.Router)
+            end
+            """,
+            "lib/test_web/router.ex" => """
+            defmodule TestWeb.Router do
+              use Phoenix.Router
+
+              scope "/", TestWeb do
+                get "/", PageController, :index
+              end
             end
             """
           }
@@ -44,7 +59,7 @@ defmodule Mix.Tasks.WwwRedirect.InstallTest do
     |> assert_has_patch("lib/test_web/endpoint.ex", """
     + |  plug(WwwRedirect, to: :non_www)
     + |
-      |  plug(Plug.Static,
+      |  # Serve at "/" the static files from "priv/static" directory.
     """)
   end
 end

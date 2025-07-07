@@ -70,21 +70,31 @@ if Code.ensure_loaded?(Igniter) do
 
     @impl Igniter.Mix.Task
     def igniter(igniter) do
-      igniter
-      |> configure_phoenix()
+      {igniter, routers} =
+        Igniter.Libs.Phoenix.list_routers(igniter)
+
+      {igniter, endpoints} =
+        Enum.reduce(routers, {igniter, []}, fn router, {igniter, endpoints} ->
+          {igniter, new_endpoints} = Igniter.Libs.Phoenix.endpoints_for_router(igniter, router)
+          {igniter, endpoints ++ new_endpoints}
+        end)
+
+      if endpoints != [] do
+        Enum.reduce(endpoints, igniter, fn endpoint, igniter ->
+          setup_endpoint(igniter, endpoint)
+        end)
+      else
+        Mix.shell().error("Could not find any endpoints to install the WwwRedirect plug.")
+        exit({:shutdown, 1})
+      end
     end
 
-    defp configure_phoenix(igniter) do
-      {igniter, endpoint} =
-        Igniter.Libs.Phoenix.select_endpoint(igniter)
-
-      if endpoint do
-        Igniter.Project.Module.find_and_update_module!(igniter, endpoint, fn zipper ->
-          zipper
-          |> Igniter.Code.Common.within(&add_plug/1)
-          |> then(&{:ok, &1})
-        end)
-      end
+    defp setup_endpoint(igniter, endpoint) do
+      Igniter.Project.Module.find_and_update_module!(igniter, endpoint, fn zipper ->
+        zipper
+        |> Igniter.Code.Common.within(&add_plug/1)
+        |> then(&{:ok, &1})
+      end)
     end
 
     defp add_plug(zipper) do
