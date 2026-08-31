@@ -12,7 +12,7 @@ by adding `www_redirect` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:www_redirect, "~> 0.1.2"}
+    {:www_redirect, "~> 0.1.3"}
   ]
 end
 ```
