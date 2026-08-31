@@ -12,7 +12,7 @@ by adding `www_redirect` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:www_redirect, "~> 0.1.0"}
+    {:www_redirect, "~> 0.1.2"}
   ]
 end
 ```
@@ -26,23 +26,32 @@ mix igniter.install www_redirect
 ### Usage
 
 ```elixir
-# Redirect to non-www (default behavior)
-# E.g. `www.example.com` -> `example.com`
-plug WwwRedirect
-plug WwwRedirect, to: :non_www
+socket "/live" # ...
 
-# Redirect to www
+
+# Add ONE of the following:
+# Redirect to non-www (default behavior)
+plug WwwRedirect
+# E.g. `www.example.com` -> `example.com`
+plug WwwRedirect, to: :non_www
 # E.g. `https://example.com/path` -> `https://www.example.com/path`
 plug WwwRedirect, to: :www
+
+# Redirect to www temporarily instead of using the default 301 response
+plug WwwRedirect, to: :www, status: 302
+
+
+plug Plug.Static, # ...
 ```
 
 ### Configuration Options
 
 The plug accepts the following options:
 
-- `:to` - Specifies the redirect target. Can be `:www` (default) or `:non_www`.
+- `:to` - Specifies the redirect target. Can be `:www` or `:non_www` (default).
   - `:www` - Redirects bare domains to www versions (e.g., `example.com` → `www.example.com`)
-  - `:non_www` - Redirects www domains to bare versions (e.g., `www.example.com` → `example.com`)
+  - `:non_www` (default) - Redirects www domains to bare versions (e.g., `www.example.com` → `example.com`)
+- `:status` - Specifies the HTTP redirect status as an integer or Plug status atom. Defaults to `301` (`:moved_permanently`).
 
 ### Fixing Tests
 

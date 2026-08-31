@@ -6,24 +6,51 @@ defmodule WwwRedirectTest do
   alias WwwRedirect
 
   describe "init/1" do
-    test "returns default options with :to set to :non_www" do
+    test "returns default options" do
       opts = WwwRedirect.init([])
-      assert opts == %{to: :non_www}
+      assert opts == %{status: 301, to: :non_www}
     end
 
     test "preserves existing options and adds defaults" do
       opts = WwwRedirect.init(some: "option")
-      assert opts == %{some: "option", to: :non_www}
+      assert opts == %{some: "option", status: 301, to: :non_www}
     end
 
     test "does not override explicitly set options" do
       opts = WwwRedirect.init(to: :non_www)
-      assert opts == %{to: :non_www}
+      assert opts == %{status: 301, to: :non_www}
     end
 
     test "converts keyword list to map" do
       opts = WwwRedirect.init(to: :www, other: "value")
-      assert opts == %{to: :www, other: "value"}
+      assert opts == %{status: 301, to: :www, other: "value"}
+    end
+
+    test "does not override an explicitly set status" do
+      opts = WwwRedirect.init(status: 302)
+      assert opts == %{status: 302, to: :non_www}
+    end
+  end
+
+  describe "call/2 with :status" do
+    test "uses an explicitly configured integer status" do
+      conn = conn(:get, "http://www.example.com/path")
+
+      conn = WwwRedirect.call(conn, %{to: :non_www, status: 302})
+
+      assert conn.status == 302
+      assert get_resp_header(conn, "location") == ["http://example.com/path"]
+      assert conn.halted == true
+    end
+
+    test "accepts a Plug status atom" do
+      conn = conn(:get, "http://example.com/path")
+
+      conn = WwwRedirect.call(conn, %{to: :www, status: :temporary_redirect})
+
+      assert conn.status == 307
+      assert get_resp_header(conn, "location") == ["http://www.example.com/path"]
+      assert conn.halted == true
     end
   end
 
@@ -33,7 +60,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.example.com:443/path"]
       assert conn.halted == true
     end
@@ -43,7 +70,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["https://www.example.com/path"]
       assert conn.halted == true
     end
@@ -84,7 +111,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com/path"]
       assert conn.halted == true
     end
@@ -94,7 +121,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["https://example.com/path"]
       assert conn.halted == true
     end
@@ -133,7 +160,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com/path"]
       assert conn.halted == true
     end
@@ -143,7 +170,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com/path"]
       assert conn.halted == true
     end
@@ -155,7 +182,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.wwwexample.com/path"]
       assert conn.halted == true
     end
@@ -205,7 +232,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["https://www.example.com/path"]
     end
 
@@ -214,7 +241,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["https://example.com/path"]
     end
 
@@ -223,7 +250,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.example.com:8080/path"]
     end
 
@@ -232,7 +259,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com:8080/path"]
     end
 
@@ -253,7 +280,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.example.com/search?q=test&page=2"]
     end
 
@@ -262,7 +289,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :non_www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com/search?q=test&page=2"]
     end
 
@@ -271,7 +298,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
 
       assert get_resp_header(conn, "location") == [
                "http://www.example.com:3000/api/v1/users?active=true&sort=name"
@@ -283,7 +310,7 @@ defmodule WwwRedirectTest do
 
       conn = WwwRedirect.call(conn, %{to: :www})
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.example.com/"]
     end
   end
@@ -311,7 +338,7 @@ defmodule WwwRedirectTest do
       conn = conn(:get, "http://example.com/test")
       conn = TestRouter.call(conn, TestRouter.init([]))
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://www.example.com/test"]
       assert conn.halted == true
 
@@ -344,7 +371,7 @@ defmodule WwwRedirectTest do
       conn = conn(:get, "http://www.example.com/test")
       conn = TestRouterNonWww.call(conn, TestRouterNonWww.init([]))
 
-      assert conn.status == 302
+      assert conn.status == 301
       assert get_resp_header(conn, "location") == ["http://example.com/test"]
       assert conn.halted == true
 

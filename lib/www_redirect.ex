@@ -9,6 +9,8 @@ defmodule WwwRedirect do
   * `:to` - Specifies the redirect target. Can be `:www` or `:non_www` (default).
     - `:www` - Redirects bare domains to www versions (e.g., example.com -> www.example.com)
     - `:non_www` (default) - Redirects www domains to bare versions (e.g., www.example.com -> example.com)
+  * `:status` - Specifies the HTTP redirect status as an integer or atom accepted by
+    `Plug.Conn.put_status/2`. Defaults to `301` (`:moved_permanently`).
 
   ## Examples
 
@@ -19,6 +21,9 @@ defmodule WwwRedirect do
       # Redirect to www
       plug WwwRedirect, to: :www
 
+      # Redirect to www temporarily instead of permanently
+      plug WwwRedirect, to: :www, status: 302
+
   """
 
   import Plug.Conn
@@ -26,21 +31,25 @@ defmodule WwwRedirect do
   def init(opts) do
     opts
     |> Keyword.put_new(:to, :non_www)
+    |> Keyword.put_new(:status, 301)
     |> Enum.into(%{})
   end
 
   def call(conn, opts) do
     redirect_to = Map.get(opts, :to, :non_www)
+    status = Map.get(opts, :status, 301)
     subdomain = get_subdomain(conn.host)
 
     cond do
       redirect_to == :www and subdomain == :non_www ->
         conn
+        |> put_status(status)
         |> Phoenix.Controller.redirect(external: www_url(conn))
         |> halt()
 
       redirect_to == :non_www and subdomain == :www ->
         conn
+        |> put_status(status)
         |> Phoenix.Controller.redirect(external: non_www_url(conn))
         |> halt()
 

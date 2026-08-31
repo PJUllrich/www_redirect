@@ -1,7 +1,7 @@
 defmodule WwwRedirect.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.1.2"
   @source_url "https://github.com/PJUllrich/www_redirect"
 
   def project do
@@ -37,7 +37,7 @@ defmodule WwwRedirect.MixProject do
   defp package do
     [
       description: "Redirects HTTP requests from WWW to Non-WWW and vice versa.",
-      files: ["lib", "LICENSE", "mix.exs", "README.md"],
+      files: ["lib", "CHANGELOG.md", "LICENSE", "mix.exs", "README.md"],
       licenses: ["MIT"],
       maintainers: ["Peter Ullrich"],
       links: %{"GitHub" => @source_url}
@@ -48,6 +48,7 @@ defmodule WwwRedirect.MixProject do
     [
       extras: [
         "README.md",
+        "CHANGELOG.md",
         "LICENSE"
       ],
       main: "readme",
