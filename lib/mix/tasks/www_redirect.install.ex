@@ -32,6 +32,13 @@ if Code.ensure_loaded?(Igniter) do
   defmodule Mix.Tasks.WwwRedirect.Install do
     @shortdoc "#{__MODULE__.Docs.short_doc()}"
 
+    @missing_plug_static_notice """
+    Could not install WwwRedirect. We look for Plug.Static, and add our plug just before it.
+    However, we could not find that plug in your endpoint. Please add the following line in your endpoint:
+
+    plug WwwRedirect, to: :non_www
+    """
+
     @moduledoc __MODULE__.Docs.long_doc()
 
     use Igniter.Mix.Task
@@ -90,33 +97,45 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     defp setup_endpoint(igniter, endpoint) do
-      Igniter.Project.Module.find_and_update_module!(igniter, endpoint, fn zipper ->
-        zipper
-        |> Igniter.Code.Common.within(&add_plug/1)
-        |> then(&{:ok, &1})
-      end)
+      {igniter, _source, zipper} = Igniter.Project.Module.find_module!(igniter, endpoint)
+      {:ok, zipper} = Igniter.Code.Common.move_to_do_block(zipper)
+
+      case installation_status(zipper) do
+        :already_installed ->
+          igniter
+
+        :ready_to_install ->
+          Igniter.Project.Module.find_and_update_module!(igniter, endpoint, fn zipper ->
+            zipper
+            |> Igniter.Code.Common.within(&add_plug/1)
+            |> then(&{:ok, &1})
+          end)
+
+        :plug_static_not_found ->
+          Igniter.add_notice(igniter, @missing_plug_static_notice)
+      end
+    end
+
+    defp installation_status(zipper) do
+      cond do
+        match?({:ok, _zipper}, move_to_plug(zipper, WwwRedirect)) -> :already_installed
+        match?({:ok, _zipper}, move_to_plug(zipper, Plug.Static)) -> :ready_to_install
+        true -> :plug_static_not_found
+      end
     end
 
     defp add_plug(zipper) do
-      with :error <-
-             Igniter.Code.Function.move_to_function_call_in_current_scope(
-               zipper,
-               :plug,
-               [1, 2],
-               &Igniter.Code.Function.argument_equals?(&1, 0, WwwRedirect)
-             ),
-           {:ok, zipper} <-
-             Igniter.Code.Function.move_to_function_call_in_current_scope(
-               zipper,
-               :plug,
-               [1, 2],
-               &Igniter.Code.Function.argument_equals?(&1, 0, Plug.Static)
-             ) do
-        Igniter.Code.Common.add_code(zipper, "plug WwwRedirect, to: :non_www", placement: :before)
-      else
-        _ ->
-          zipper
-      end
+      {:ok, zipper} = move_to_plug(zipper, Plug.Static)
+      Igniter.Code.Common.add_code(zipper, "plug WwwRedirect, to: :non_www", placement: :before)
+    end
+
+    defp move_to_plug(zipper, module) do
+      Igniter.Code.Function.move_to_function_call_in_current_scope(
+        zipper,
+        :plug,
+        [1, 2],
+        &Igniter.Code.Function.argument_equals?(&1, 0, module)
+      )
     end
   end
 else

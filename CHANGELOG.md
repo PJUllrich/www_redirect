@@ -4,6 +4,7 @@
 
 - Changed redirects to use HTTP status 301 (Moved Permanently) by default.
 - Added the `:status` option for configuring a different redirect status.
+- Added an installer notice with manual setup instructions when `Plug.Static` cannot be found.
 
 ## 0.1.1 - 2025-07-07
 
